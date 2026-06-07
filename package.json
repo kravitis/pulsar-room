@@ -1,0 +1,7 @@
+{
+  "name": "pulsar-player",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node generate-playlist.js"
+  }
+}
