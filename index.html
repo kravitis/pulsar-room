@@ -3,84 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pulsar Music Player</title>
+    <title>Pulsar Room</title>
+    
+    <meta property="og:title" content="Pulsar Room" />
+    <meta property="og:description" content="Ακούστε την αγαπημένη μου μουσική!" />
+    <meta property="og:type" content="website" />
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .player-container { background: #1e1e1e; padding: 30px; border-radius: 15px; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: #1db954; margin-bottom: 5px; }
-        #current-track { font-size: 14px; color: #b3b3b3; margin-bottom: 20px; }
-        audio { width: 100%; margin-bottom: 20px; }
-        .playlist { text-align: left; max-height: 250px; overflow-y: auto; border-top: 1px solid #333; padding-top: 15px; }
-        .track-item { padding: 10px; border-radius: 5px; cursor: pointer; transition: background 0.2s; font-size: 14px; }
-        .track-item:hover { background: #2a2a2a; }
-        .track-item.active { color: #1db954; font-weight: bold; background: #282828; }
+        :root {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --accent-color: #2ecc71;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .player-container {
+            background-color: var(--container-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .current-track {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            height: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        audio {
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 30px;
+        }
+
+        /* Στυλ για τα κουμπιά ελέγχου */
+        .controls-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            background-color: #2c2c2c;
+            border: none;
+            color: var(--text-color);
+            padding: 12px 20px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            background-color: #3a3a3a;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .playlist-container {
+            text-align: left;
+            max-height: 250px;
+            overflow-y: auto;
+            border-top: 1px solid #2c2c2c;
+            padding-top: 15px;
+        }
+
+        .track-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: background 0.2s;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .track-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+        }
+
+        .track-item.active {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Custom Scrollbar για την λίστα */
+        .playlist-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .playlist-container::-webkit-scrollbar-thumb {
+            background-color: #3a3a3a;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
 
-<div class="player-container">
-    <h2>Pulsar Αρχείο</h2>
-    <div id="current-track">Φόρτωση κομματιών...</div>
-    <audio id="audio-player" controls></audio>
-    <div class="playlist" id="playlist"></div>
-</div>
+    <div class="player-container">
+        <h1>Pulsar Room</h1>
+        <div class="current-track" id="currentTrack">Φόρτωση λίστας...</div>
+        
+        <audio id="audioPlayer" controls></audio>
 
-<script>
-    const audioPlayer = document.getElementById('audio-player');
-    const playlistContainer = document.getElementById('playlist');
-    const currentTrackText = document.getElementById('current-track');
-    
-    let songs = [];
-    let currentTrackIndex = 0;
+        <div class="controls-buttons">
+            <button class="btn" id="prevBtn" title="Προηγούμενο">⏮️</button>
+            <button class="btn" id="nextBtn" title="Επόμενο">⏭️</button>
+        </div>
 
-    // Διαβάζει το αυτόματο αρχείο playlist.json
-    async function initPlayer() {
-        try {
-            const response = await fetch('playlist.json');
-            const fileNames = await response.json();
-            
-            songs = fileNames.map(fileName => ({
-                name: fileName.replace('.mp3', ''),
-                url: `songs/${fileName}`
-            }));
+        <div class="playlist-container" id="playlist">
+            </div>
+    </div>
 
-            if (songs.length > 0) {
-                renderPlaylist();
-                loadTrack(0, false);
-            } else {
-                currentTrackText.innerText = "Ο φάκελος songs είναι άδειος.";
+    <script>
+        const audioPlayer = document.getElementById('audioPlayer');
+        const currentTrackText = document.getElementById('currentTrack');
+        const playlistContainer = document.getElementById('playlist');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        let songs = [];
+        let currentTrackIndex = 0;
+
+        // Αρχική φόρτωση
+        async function initPlayer() {
+            try {
+                const response = await fetch('playlist.json');
+                const data = await response.json();
+                
+                // Προσαρμογή είτε το JSON είναι απλή λίστα ονομάτων είτε αντικείμενα (για το 2ο repo)
+                songs = data.map(track => {
+                    if (typeof track === 'string') {
+                        return {
+                            name: track.replace(/\.[^/.]+$/, ""), // Αφαιρεί την κατάληξη (.mp3, .wav κλπ)
+                            url: `songs/${track}`
+                        };
+                    }
+                    return track; // Αν είναι ήδη έτοιμο αντικείμενο από το script των 2 repos
+                });
+
+                if (songs.length > 0) {
+                    renderPlaylist();
+                    loadTrack(0, false); // Φόρτωσε το πρώτο χωρίς να παίξει αυτόματα στην αρχή
+                } else {
+                    currentTrackText.innerText = "Ο φάκελος songs είναι άδειος.";
+                }
+            } catch (e) {
+                console.error(e);
+                currentTrackText.innerText = "Σφάλμα φόρτωσης λίστας.";
             }
-        } catch (e) {
-            currentTrackText.innerText = "Σφάλμα φόρτωσης λίστας.";
         }
-    }
 
-    function renderPlaylist() {
-        playlistContainer.innerHTML = '';
-        songs.forEach((song, index) => {
-            const div = document.createElement('div');
-            div.className = 'track-item';
-            div.id = `track-${index}`;
-            div.innerText = `${index + 1}. ${song.name}`;
-            div.onclick = () => loadTrack(index, true);
-            playlistContainer.appendChild(div);
-        });
-    }
+        // Εμφάνιση της λίστας στην οθόνη
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            songs.forEach((song, index) => {
+                const item = document.createElement('div');
+                item.className = 'track-item';
+                if (index === currentTrackIndex) item.className += ' active';
+                item.innerText = `${index + 1}. ${song.name}`;
+                item.addEventListener('click', () => loadTrack(index, true));
+                playlistContainer.appendChild(item);
+            });
+        }
 
-    function loadTrack(index, shouldPlay) {
-        document.querySelectorAll('.track-item').forEach(el => el.classList.remove('active'));
-        currentTrackIndex = index;
-        audioPlayer.src = songs[currentTrackIndex].url;
-        currentTrackText.innerText = songs[currentTrackIndex].name;
-        document.getElementById(`track-${index}`).classList.add('active');
-        if (shouldPlay) audioPlayer.play();
-    }
+        // Φόρτωση και αναπαραγωγή κομματιού
+        function loadTrack(index, shouldPlay = true) {
+            if (index < 0 || index >= songs.length) return;
+            
+            currentTrackIndex = index;
+            const currentSong = songs[currentTrackIndex];
+            
+            audioPlayer.src = currentSong.url;
+            currentTrackText.innerText = currentSong.name;
 
-    audioPlayer.addEventListener('ended', () => {
-        loadTrack((currentTrackIndex + 1) % songs.length, true);
-    });
+            // Ενημέρωση των κλάσεων active στη λίστα
+            const items = playlistContainer.getElementsByClassName('track-item');
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('active');
+            }
+            if (items[currentTrackIndex]) {
+                items[currentTrackIndex].classList.add('active');
+                items[currentTrackIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
 
-    initPlayer();
-</script>
+            // Ενημέρωση του Bluetooth (Media Session API)
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: currentSong.name,
+                    artist: 'Pulsar Player',
+                    album: 'My Playlist'
+                });
+            }
+
+            if (shouldPlay) {
+                audioPlayer.play().catch(err => console.log("Η αυτόματη αναπαραγωγή μπλοκαρίστηκε από τον browser"));
+            }
+        }
+
+        // Συναρτήσεις Next / Previous
+        function nextTrack() {
+            let nextIndex = currentTrackIndex + 1;
+            if (nextIndex >= songs.length) nextIndex = 0; // Επιστροφή στην αρχή αν τελειώσουν
+            loadTrack(nextIndex, true);
+        }
+
+        function prevTrack() {
+            let prevIndex = currentTrackIndex - 1;
+            if (prevIndex < 0) prevIndex = songs.length - 1; // Πήγαινε στο τελευταίο αν πάει πίσω από το 0
+            loadTrack(prevIndex, true);
+        }
+
+        // Event Listeners για τα φυσικά κουμπιά της σελίδας
+        nextBtn.addEventListener('click', nextTrack);
+        prevBtn.addEventListener('click', prevTrack);
+
+        // Αυτόματη μετάβαση στο επόμενο όταν τελειώνει ένα τραγούδι
+        audioPlayer.addEventListener('ended', nextTrack);
+
+        // Ρύθμιση των Bluetooth Handlers (Media Session API)
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+            navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+            navigator.mediaSession.setActionHandler('play', () => audioPlayer.play());
+            navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
+        }
+
+        // Εκκίνηση
+        initPlayer();
+    </script>
 </body>
 </html>
